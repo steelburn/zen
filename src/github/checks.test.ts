@@ -5,7 +5,7 @@ import type { CheckRun, CheckAnnotation } from "./types.js";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
-const mockCheckRun: CheckRun = {
+const _mockCheckRun: CheckRun = {
   id: 42,
   name: "zen/quality",
   headSha: "abc123def456",
@@ -26,10 +26,7 @@ const mockCheckRun: CheckRun = {
   app: { id: 123, slug: "zen-quality" },
 };
 
-function mockFetch(response: {
-  status: number;
-  body: unknown;
-}) {
+function mockFetch(response: { status: number; body: unknown }) {
   return vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return {
       ok: response.status >= 200 && response.status < 300,

@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import { generateAppJwt, GitHubAuthError } from "./auth.js";
@@ -34,9 +35,7 @@ describe("generateAppJwt", () => {
     });
 
     const [headerBase64] = jwt.split(".");
-    const header = JSON.parse(
-      Buffer.from(headerBase64!, "base64url").toString("utf-8"),
-    );
+    const header = JSON.parse(Buffer.from(headerBase64!, "base64url").toString("utf-8"));
 
     expect(header).toEqual({ alg: "RS256", typ: "JWT" });
   });
@@ -48,9 +47,7 @@ describe("generateAppJwt", () => {
     });
 
     const [, payloadBase64] = jwt.split(".");
-    const payload = JSON.parse(
-      Buffer.from(payloadBase64!, "base64url").toString("utf-8"),
-    );
+    const payload = JSON.parse(Buffer.from(payloadBase64!, "base64url").toString("utf-8"));
 
     expect(payload.iss).toBe("67890");
   });
@@ -62,9 +59,7 @@ describe("generateAppJwt", () => {
     });
 
     const [, payloadBase64] = jwt.split(".");
-    const payload = JSON.parse(
-      Buffer.from(payloadBase64!, "base64url").toString("utf-8"),
-    );
+    const payload = JSON.parse(Buffer.from(payloadBase64!, "base64url").toString("utf-8"));
 
     const now = Math.floor(Date.now() / 1000);
     expect(payload.iat).toBeLessThanOrEqual(now);

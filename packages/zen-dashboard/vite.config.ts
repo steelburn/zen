@@ -1,15 +1,8 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
-import react from "@vitejs/plugin-react";
-import { defineConfig } from "vitest/config";
-
 export default defineConfig({
-  plugins: [
-    react({
-      jsxRuntime: "classic",
-    }),
-  ],
+  plugins: [react()],
   define: {
     "process.env.NODE_ENV": '"development"',
   },
@@ -27,11 +20,6 @@ export default defineConfig({
         branches: 75,
         functions: 80,
         lines: 80,
-      },
-    },
-    server: {
-      deps: {
-        inline: ["react", "react-dom"],
       },
     },
   },

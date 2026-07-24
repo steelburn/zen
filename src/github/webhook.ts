@@ -15,7 +15,7 @@ import type { PullRequestEvent } from "./types.js";
 
 /** Thrown when webhook processing fails. */
 export class WebhookError extends Error {
-  public override readonly name = "WebhookError";
+  public override name = "WebhookError";
 
   constructor(message: string, options?: ErrorOptions) {
     super(message, options);
@@ -24,10 +24,9 @@ export class WebhookError extends Error {
 
 /** Thrown when webhook signature verification fails. */
 export class WebhookSignatureError extends WebhookError {
-  public override readonly name = "WebhookSignatureError";
-
   constructor(message?: string) {
     super(message ?? "Webhook signature verification failed");
+    this.name = "WebhookSignatureError";
   }
 }
 
@@ -64,9 +63,7 @@ export function verifyWebhookSignature(
   // Expected format: "sha256=<hex>"
   const expectedPrefix = "sha256=";
   if (!signatureHeader.startsWith(expectedPrefix)) {
-    throw new WebhookSignatureError(
-      `Invalid signature format (expected sha256=...)`,
-    );
+    throw new WebhookSignatureError(`Invalid signature format (expected sha256=...)`);
   }
 
   const expectedSig = signatureHeader.slice(expectedPrefix.length);
@@ -78,10 +75,7 @@ export function verifyWebhookSignature(
   const expectedBuf = Buffer.from(expectedSig, "utf-8");
   const computedBuf = Buffer.from(computedSig, "utf-8");
 
-  if (
-    expectedBuf.length !== computedBuf.length ||
-    !timingSafeEqual(expectedBuf, computedBuf)
-  ) {
+  if (expectedBuf.length !== computedBuf.length || !timingSafeEqual(expectedBuf, computedBuf)) {
     throw new WebhookSignatureError("Signature mismatch");
   }
 
@@ -140,11 +134,7 @@ export function parsePullRequestEvent(
   }
 
   const action = payload.action as string;
-  const triggerActions: readonly TriggerAction[] = [
-    "opened",
-    "synchronize",
-    "reopened",
-  ];
+  const triggerActions: readonly TriggerAction[] = ["opened", "synchronize", "reopened"];
 
   if (!triggerActions.includes(action as TriggerAction)) {
     return undefined;

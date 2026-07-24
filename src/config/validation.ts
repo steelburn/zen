@@ -53,9 +53,7 @@ function validateVersion(value: unknown): ValidationResult<ConfigVersion> {
     return fail("version must be a string");
   }
   if (!KNOWN_VERSIONS.includes(value as ConfigVersion)) {
-    return fail(
-      `unsupported version "${value}". Supported versions: ${KNOWN_VERSIONS.join(", ")}`,
-    );
+    return fail(`unsupported version "${value}". Supported versions: ${KNOWN_VERSIONS.join(", ")}`);
   }
   return ok(value as ConfigVersion);
 }
@@ -73,10 +71,7 @@ function validatePercentage(value: unknown, label: string): ValidationResult<num
   return ok(value);
 }
 
-function validateNonNegativeInteger(
-  value: unknown,
-  label: string,
-): ValidationResult<number> {
+function validateNonNegativeInteger(value: unknown, label: string): ValidationResult<number> {
   if (value === undefined || value === null) {
     return ok(0);
   }
@@ -89,10 +84,7 @@ function validateNonNegativeInteger(
   return ok(value);
 }
 
-function validatePositiveInteger(
-  value: unknown,
-  label: string,
-): ValidationResult<number> {
+function validatePositiveInteger(value: unknown, label: string): ValidationResult<number> {
   if (value === undefined || value === null) {
     return ok(10);
   }
@@ -115,10 +107,7 @@ function validateBoolean(value: unknown, label: string): ValidationResult<boolea
   return ok(value);
 }
 
-function validateGlobPatterns(
-  value: unknown,
-  label: string,
-): ValidationResult<readonly string[]> {
+function validateGlobPatterns(value: unknown, label: string): ValidationResult<readonly string[]> {
   if (value === undefined || value === null) {
     return ok([]);
   }
@@ -186,58 +175,78 @@ function validateObjectShape(
 // ---------------------------------------------------------------------------
 
 function validateCoverageCheck(value: unknown): ValidationResult<CoverageCheck> {
-  const result = validateObjectShape(value, {
-    enabled: (v) => validateBoolean(v, "checks.coverage.enabled"),
-    threshold: (v) => validatePercentage(v, "checks.coverage.threshold"),
-    strict: (v) => validateBoolean(v, "checks.coverage.strict"),
-    include: (v) => validateGlobPatterns(v, "checks.coverage.include"),
-    exclude: (v) => validateGlobPatterns(v, "checks.coverage.exclude"),
-  }, "checks.coverage");
+  const result = validateObjectShape(
+    value,
+    {
+      enabled: (v) => validateBoolean(v, "checks.coverage.enabled"),
+      threshold: (v) => validatePercentage(v, "checks.coverage.threshold"),
+      strict: (v) => validateBoolean(v, "checks.coverage.strict"),
+      include: (v) => validateGlobPatterns(v, "checks.coverage.include"),
+      exclude: (v) => validateGlobPatterns(v, "checks.coverage.exclude"),
+    },
+    "checks.coverage",
+  );
 
   if (!result.ok) return result;
   return ok(result.value as unknown as CoverageCheck);
 }
 
 function validateLintCheck(value: unknown): ValidationResult<LintCheck> {
-  const result = validateObjectShape(value, {
-    enabled: (v) => validateBoolean(v, "checks.lint.enabled"),
-    maxErrors: (v) => validateNonNegativeInteger(v, "checks.lint.maxErrors"),
-    maxWarnings: (v) => validateNonNegativeInteger(v, "checks.lint.maxWarnings"),
-    strict: (v) => validateBoolean(v, "checks.lint.strict"),
-  }, "checks.lint");
+  const result = validateObjectShape(
+    value,
+    {
+      enabled: (v) => validateBoolean(v, "checks.lint.enabled"),
+      maxErrors: (v) => validateNonNegativeInteger(v, "checks.lint.maxErrors"),
+      maxWarnings: (v) => validateNonNegativeInteger(v, "checks.lint.maxWarnings"),
+      strict: (v) => validateBoolean(v, "checks.lint.strict"),
+    },
+    "checks.lint",
+  );
 
   if (!result.ok) return result;
   return ok(result.value as unknown as LintCheck);
 }
 
 function validateComplexityCheck(value: unknown): ValidationResult<ComplexityCheck> {
-  const result = validateObjectShape(value, {
-    enabled: (v) => validateBoolean(v, "checks.complexity.enabled"),
-    maxComplexity: (v) => validatePositiveInteger(v, "checks.complexity.maxComplexity"),
-    strict: (v) => validateBoolean(v, "checks.complexity.strict"),
-    exclude: (v) => validateGlobPatterns(v, "checks.complexity.exclude"),
-  }, "checks.complexity");
+  const result = validateObjectShape(
+    value,
+    {
+      enabled: (v) => validateBoolean(v, "checks.complexity.enabled"),
+      maxComplexity: (v) => validatePositiveInteger(v, "checks.complexity.maxComplexity"),
+      strict: (v) => validateBoolean(v, "checks.complexity.strict"),
+      exclude: (v) => validateGlobPatterns(v, "checks.complexity.exclude"),
+    },
+    "checks.complexity",
+  );
 
   if (!result.ok) return result;
   return ok(result.value as unknown as ComplexityCheck);
 }
 
 function validateChecksConfig(value: unknown): ValidationResult<ChecksConfig> {
-  const result = validateObjectShape(value, {
-    coverage: (v) => validateCoverageCheck(v),
-    lint: (v) => validateLintCheck(v),
-    complexity: (v) => validateComplexityCheck(v),
-  }, "checks");
+  const result = validateObjectShape(
+    value,
+    {
+      coverage: (v) => validateCoverageCheck(v),
+      lint: (v) => validateLintCheck(v),
+      complexity: (v) => validateComplexityCheck(v),
+    },
+    "checks",
+  );
 
   if (!result.ok) return result;
   return ok(result.value as unknown as ChecksConfig);
 }
 
 function validateZenConfigNested(value: unknown): ValidationResult<ZenConfigNested> {
-  const result = validateObjectShape(value, {
-    checks: (v) => validateChecksConfig(v),
-    exclude: (v) => validateGlobPatterns(v, "exclude"),
-  }, "nested config");
+  const result = validateObjectShape(
+    value,
+    {
+      checks: (v) => validateChecksConfig(v),
+      exclude: (v) => validateGlobPatterns(v, "exclude"),
+    },
+    "nested config",
+  );
 
   if (!result.ok) return result;
   return ok(result.value as unknown as ZenConfigNested);
@@ -384,13 +393,12 @@ export function validateConfig(input: unknown): ValidationResult<ZenConfig> {
   if (errors.length > 0) return fail(...errors);
 
   // Build result — only include fields that were present in the input.
-  // We use non-null assertions because validation passed (all errors
-  // would have been caught above).
+  // All validators passed at this point (early return above), so narrow with ok guards.
   const result: Record<string, unknown> = {};
-  if (obj["version"] !== undefined) result["version"] = version.value!;
-  if (obj["checks"] !== undefined) result["checks"] = checks.value!;
+  if (obj["version"] !== undefined && version.ok) result["version"] = version.value;
+  if (obj["checks"] !== undefined && checks.ok) result["checks"] = checks.value;
   if (obj["branches"] !== undefined) result["branches"] = branches;
   if (obj["environments"] !== undefined) result["environments"] = environments;
-  if (obj["exclude"] !== undefined) result["exclude"] = exclude.value!;
+  if (obj["exclude"] !== undefined && exclude.ok) result["exclude"] = exclude.value;
   return ok(result as ZenConfig);
 }

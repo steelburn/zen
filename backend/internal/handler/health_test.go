@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewHealthHandler_OK(t *testing.T) {
-	handler := NewHealthHandler("test-version")
+	handler := NewHealthHandler("test-version", nil)
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
 
@@ -37,7 +37,7 @@ func TestNewHealthHandler_OK(t *testing.T) {
 }
 
 func TestNewHealthHandler_MethodNotAllowed(t *testing.T) {
-	handler := NewHealthHandler("v1")
+	handler := NewHealthHandler("v1", nil)
 
 	methods := []string{http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch}
 	for _, method := range methods {
@@ -54,7 +54,7 @@ func TestNewHealthHandler_MethodNotAllowed(t *testing.T) {
 }
 
 func TestNewHealthHandler_VersionIncluded(t *testing.T) {
-	handler := NewHealthHandler("0.2.0-rc1")
+	handler := NewHealthHandler("0.2.0-rc1", nil)
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
 
@@ -65,5 +65,23 @@ func TestNewHealthHandler_VersionIncluded(t *testing.T) {
 
 	if resp.Version != "0.2.0-rc1" {
 		t.Errorf("Version = %q, want 0.2.0-rc1", resp.Version)
+	}
+}
+
+func TestNewHealthHandler_DatabaseNotConfigured(t *testing.T) {
+	handler := NewHealthHandler("v1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	var resp HealthResponse
+	json.NewDecoder(rec.Body).Decode(&resp)
+
+	if resp.Database != "not_configured" {
+		t.Errorf("Database = %q, want not_configured", resp.Database)
+	}
+	if resp.Uptime == "" {
+		t.Error("Uptime should not be empty")
 	}
 }

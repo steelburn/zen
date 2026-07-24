@@ -37,9 +37,7 @@ export {
   DEFAULT_LINT_CHECK,
 } from "./defaults.js";
 
-export {
-  validateConfig,
-} from "./validation.js";
+export { validateConfig } from "./validation.js";
 export type { ValidationResult } from "./validation.js";
 
 export {

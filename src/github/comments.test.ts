@@ -1,11 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  CommentError,
-  formatQualityReport,
-  findZenComment,
-} from "./comments.js";
-import type { PullRequestComment, QualityReportData } from "./types.js";
+import { CommentError, findZenComment, formatQualityReport } from "./comments.js";
+import type { QualityReportData } from "./comments.js";
+import type { PullRequestComment } from "./types.js";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -29,10 +26,7 @@ const otherComment: PullRequestComment = {
   htmlUrl: "https://github.com/owner/repo/pull/1#issuecomment-102",
 };
 
-function mockFetch(response: {
-  status: number;
-  body: unknown;
-}) {
+function mockFetch(response: { status: number; body: unknown }) {
   return vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return {
       ok: response.status >= 200 && response.status < 300,
@@ -140,9 +134,7 @@ describe("formatQualityReport", () => {
       ...sampleData,
       coverageDelta: -2.3,
       overallStatus: "failed",
-      checks: [
-        { name: "Coverage", status: "failed", details: "80.0% (-2.3%)" },
-      ],
+      checks: [{ name: "Coverage", status: "failed", details: "80.0% (-2.3%)" }],
     };
 
     const report = formatQualityReport(data);
@@ -178,7 +170,7 @@ describe("formatQualityReport", () => {
     expect(howToFixSection).not.toBeNull();
     expect(howToFixSection![0]).toContain("Coverage");
     expect(howToFixSection![0]).not.toContain("Lint");
-    expect(howToFixSection![0]).not.toContain("passed")
+    expect(howToFixSection![0]).not.toContain("passed");
   });
 
   it("should show success message when all checks pass", () => {

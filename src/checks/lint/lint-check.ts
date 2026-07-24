@@ -115,11 +115,13 @@ export function compareLint(
   const newErrors: LintError[] = [];
   const fixedErrors: LintError[] = [];
   const headErrorKeys = new Set<string>();
+  const seenNewKeys = new Set<string>();
 
   for (const error of headReport.errors) {
     const key = errorKey(error);
     headErrorKeys.add(key);
-    if (!baseErrorKeys.has(key)) {
+    if (!baseErrorKeys.has(key) && !seenNewKeys.has(key)) {
+      seenNewKeys.add(key);
       newErrors.push(error);
     }
   }
@@ -142,7 +144,9 @@ export function compareLint(
       message: `[${error.ruleId}] ${error.message}`,
       title: "New lint error",
     });
-    details.push(`${error.filePath}:${error.line}:${error.column} — ${error.ruleId}: ${error.message}`);
+    details.push(
+      `${error.filePath}:${error.line}:${error.column} — ${error.ruleId}: ${error.message}`,
+    );
   }
 
   // Deduplicate annotations by key (if same error appears with slightly different messages)
@@ -156,7 +160,7 @@ export function compareLint(
     }
   }
 
-  const netNewErrors = newErrors.length;
+  const netNewErrors = newErrors.length - fixedErrors.length;
   const passed = netNewErrors <= options.maxNewErrors;
 
   const status = passed ? "pass" : "fail";
@@ -201,7 +205,7 @@ export function compareLint(
  * @returns CheckResult with lint findings
  */
 export async function lintCheck(context: CheckContext): Promise<CheckResult> {
-  const options: LintCheckOptions = {
+  const _options: LintCheckOptions = {
     maxNewErrors: context.config.lint?.maxNewErrors ?? DEFAULT_LINT_OPTIONS.maxNewErrors,
     include: context.config.lint?.include,
     exclude: context.config.lint?.exclude,

@@ -44,13 +44,8 @@ export interface GitHubRequestOptions {
  * @param options - Request options including the auth token
  * @returns Parsed response body as `T`
  */
-export async function githubRequest<T>(
-  path: string,
-  options: GitHubRequestOptions,
-): Promise<T> {
-  const url = path.startsWith("https://")
-    ? path
-    : `https://api.github.com${path}`;
+export async function githubRequest<T>(path: string, options: GitHubRequestOptions): Promise<T> {
+  const url = path.startsWith("https://") ? path : `https://api.github.com${path}`;
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${options.token}`,
@@ -66,9 +61,7 @@ export async function githubRequest<T>(
   const response = await fetch(url, {
     method: options.method ?? "GET",
     headers,
-    body: options.body !== undefined
-      ? JSON.stringify(options.body)
-      : undefined,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
   const body = await response.text().catch(() => "");

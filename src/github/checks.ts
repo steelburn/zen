@@ -14,7 +14,6 @@ import type {
   CheckRun,
   CheckRunConclusion,
   CheckRunOutput,
-  CheckRunStatus,
   CreateCheckRunParams,
   UpdateCheckRunParams,
 } from "./types.js";
@@ -66,17 +65,18 @@ export async function createCheckRun(
     status: rest.status ?? "queued",
   };
 
-  if (rest.detailsUrl) body.details_url = rest.detailsUrl;
-  if (rest.externalId) body.external_id = rest.externalId;
-  if (rest.startedAt) body.started_at = rest.startedAt;
-  if (rest.actions) body.actions = rest.actions;
-  if (rest.output) body.output = serializeOutput(rest.output);
+  if (rest.detailsUrl) body["details_url"] = rest.detailsUrl;
+  if (rest.externalId) body["external_id"] = rest.externalId;
+  if (rest.startedAt) body["started_at"] = rest.startedAt;
+  if (rest.actions) body["actions"] = rest.actions;
+  if (rest.output) body["output"] = serializeOutput(rest.output);
 
   try {
-    return await githubRequest<CheckRun>(
-      `/repos/${owner}/${repo}/check-runs`,
-      { method: "POST", body, token },
-    );
+    return await githubRequest<CheckRun>(`/repos/${owner}/${repo}/check-runs`, {
+      method: "POST",
+      body,
+      token,
+    });
   } catch (cause) {
     throw new CheckRunError(
       `Failed to create check run "${rest.name}": ${(cause as Error).message}`,
@@ -120,19 +120,20 @@ export async function updateCheckRun(
 
   const body: Record<string, unknown> = {};
 
-  if (rest.status) body.status = rest.status;
-  if (rest.conclusion) body.conclusion = rest.conclusion;
-  if (rest.completedAt) body.completed_at = rest.completedAt;
-  if (rest.detailsUrl) body.details_url = rest.detailsUrl;
-  if (rest.externalId) body.external_id = rest.externalId;
-  if (rest.actions) body.actions = rest.actions;
-  if (rest.output) body.output = serializeOutput(rest.output);
+  if (rest.status) body["status"] = rest.status;
+  if (rest.conclusion) body["conclusion"] = rest.conclusion;
+  if (rest.completedAt) body["completed_at"] = rest.completedAt;
+  if (rest.detailsUrl) body["details_url"] = rest.detailsUrl;
+  if (rest.externalId) body["external_id"] = rest.externalId;
+  if (rest.actions) body["actions"] = rest.actions;
+  if (rest.output) body["output"] = serializeOutput(rest.output);
 
   try {
-    return await githubRequest<CheckRun>(
-      `/repos/${owner}/${repo}/check-runs/${checkRunId}`,
-      { method: "PATCH", body, token },
-    );
+    return await githubRequest<CheckRun>(`/repos/${owner}/${repo}/check-runs/${checkRunId}`, {
+      method: "PATCH",
+      body,
+      token,
+    });
   } catch (cause) {
     throw new CheckRunError(
       `Failed to update check run #${checkRunId}: ${(cause as Error).message}`,
@@ -158,10 +159,7 @@ export async function getCheckRun(
   checkRunId: number,
   token: string,
 ): Promise<CheckRun> {
-  return githubRequest<CheckRun>(
-    `/repos/${owner}/${repo}/check-runs/${checkRunId}`,
-    { token },
-  );
+  return githubRequest<CheckRun>(`/repos/${owner}/${repo}/check-runs/${checkRunId}`, { token });
 }
 
 // ─── Convenience: full lifecycle ─────────────────────────────────────────────
@@ -184,10 +182,7 @@ export async function reportCheckRun(
   },
   token: string,
 ): Promise<CheckRun> {
-  const created = await createCheckRun(
-    { ...params, status: "in_progress" },
-    token,
-  );
+  const created = await createCheckRun({ ...params, status: "in_progress" }, token);
 
   return updateCheckRun(
     {
@@ -226,9 +221,7 @@ export function buildCheckOutput(
 ): CheckRunOutput {
   const MAX_ANNOTATIONS = 50;
   const truncated =
-    annotations.length > MAX_ANNOTATIONS
-      ? annotations.slice(0, MAX_ANNOTATIONS)
-      : annotations;
+    annotations.length > MAX_ANNOTATIONS ? annotations.slice(0, MAX_ANNOTATIONS) : annotations;
 
   if (annotations.length > MAX_ANNOTATIONS) {
     console.warn(
@@ -252,11 +245,11 @@ function serializeOutput(output: CheckRunOutput): Record<string, unknown> {
     summary: output.summary,
   };
 
-  if (output.text) serialized.text = output.text;
-  if (output.images && output.images.length > 0) serialized.images = output.images;
+  if (output.text) serialized["text"] = output.text;
+  if (output.images && output.images.length > 0) serialized["images"] = output.images;
 
   if (output.annotations && output.annotations.length > 0) {
-    serialized.annotations = output.annotations.map((a) => ({
+    serialized["annotations"] = output.annotations.map((a) => ({
       path: a.path,
       start_line: a.startLine,
       end_line: a.endLine,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCheckRun, getCheckRuns, getDashboardStats, getRepos } from "./client.ts";
+import { getCheckRun, getCheckRuns, getDashboardStats, getRepo, getRepos } from "./client.ts";
 
 describe("API client (mock mode)", () => {
   it("getRepos returns repository list", async () => {
@@ -8,6 +8,20 @@ describe("API client (mock mode)", () => {
     expect(res.data.length).toBeGreaterThanOrEqual(3);
     expect(res.data[0]).toHaveProperty("id");
     expect(res.data[0]).toHaveProperty("name");
+  });
+
+  it("getRepo returns a single repo by ID", async () => {
+    const res = await getRepo("repo-1");
+    expect(res.error).toBeNull();
+    expect(res.data).not.toBeNull();
+    expect(res.data!.id).toBe("repo-1");
+    expect(res.data!.name).toBe("zen");
+  });
+
+  it("getRepo returns null for unknown ID", async () => {
+    const res = await getRepo("non-existent");
+    expect(res.error).toBeNull();
+    expect(res.data).toBeNull();
   });
 
   it("getCheckRuns returns check runs", async () => {

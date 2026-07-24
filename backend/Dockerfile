@@ -1,9 +1,11 @@
 # Stage 1: Build the Go binary.
 FROM golang:1.22-alpine AS builder
 
+ARG VERSION=0.1.0-dev
+
 WORKDIR /app
 
-# Install git for module fetching.
+# Install git and ca-certificates for module fetching.
 RUN apk add --no-cache git ca-certificates
 
 # Copy dependency files first for layer caching.
@@ -13,12 +15,12 @@ RUN go mod download
 # Copy the rest of the source.
 COPY . .
 
-# Build a static binary.
+# Build a static binary with version injected.
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-s -w -X main.version=$(git describe --tags --always --dirty 2>/dev/null || echo '0.1.0-dev')" \
+    go build -ldflags="-s -w -X main.version=${VERSION}" \
     -o /app/zen-server ./cmd/zen-server/
 
-# Stage 2: Minimal runtime image.
+# Stage 2: Minimal runtime image (scratch).
 FROM scratch
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import type { CheckRun, DashboardStats } from "../types.ts";
-import { getCheckRuns, getDashboardStats } from "../api/client.ts";
+import type { CheckRun, DashboardStats, TrendData } from "../types.ts";
+import { getCheckRuns, getDashboardStats, getTrendData } from "../api/client.ts";
 import { StatCard } from "../components/StatCard.tsx";
 import { RecentChecksTable } from "../components/RecentChecksTable.tsx";
+import { TrendChart } from "../components/TrendChart.tsx";
+import { DistributionChart } from "../components/DistributionChart.tsx";
 
 /**
- * Main dashboard page — stats summary + recent check runs table.
+ * Main dashboard page — stats summary, charts/trends, and recent check runs table.
  */
 export function DashboardPage(): ReactNode {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [checks, setChecks] = useState<CheckRun[]>([]);
+  const [trends, setTrends] = useState<TrendData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -18,7 +21,11 @@ export function DashboardPage(): ReactNode {
 
     async function load(): Promise<void> {
       try {
-        const [statsRes, checksRes] = await Promise.all([getDashboardStats(), getCheckRuns()]);
+        const [statsRes, checksRes, trendsRes] = await Promise.all([
+          getDashboardStats(),
+          getCheckRuns(),
+          getTrendData(),
+        ]);
         if (cancelled) return;
 
         if (statsRes.error !== null) {
@@ -29,9 +36,14 @@ export function DashboardPage(): ReactNode {
           setError(checksRes.error);
           return;
         }
+        if (trendsRes.error !== null) {
+          setError(trendsRes.error);
+          return;
+        }
 
         setStats(statsRes.data);
         setChecks(checksRes.data);
+        setTrends(trendsRes.data);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load dashboard data");
@@ -83,13 +95,39 @@ export function DashboardPage(): ReactNode {
 
       {stats === null && error === null && <div className="loading">Loading dashboard…</div>}
 
-      <h2
-        style={{
-          fontSize: "var(--text-lg)",
-          fontWeight: "var(--font-semibold)",
-          marginBottom: "var(--space-md)",
-        }}
-      >
+      {/* Charts & Trends Section */}
+      {trends !== null && (
+        <section className="charts-section">
+          <h2 className="section-heading">Trends &amp; Distribution</h2>
+          <div className="charts-grid">
+            <TrendChart
+              data={trends.passRateTrend}
+              title="Pass Rate Trend"
+              subtitle="Last 7 days"
+              accent
+              yLabel="%"
+            />
+            <TrendChart
+              data={trends.durationTrend}
+              title="Avg Duration Trend"
+              subtitle="Per check run (seconds)"
+              yLabel="sec"
+            />
+            <DistributionChart
+              data={trends.checkTypeDistribution}
+              title="Checks by Type"
+              subtitle="Distribution across check types"
+            />
+            <DistributionChart
+              data={trends.repoDistribution}
+              title="Checks by Repository"
+              subtitle="Active repos with recent checks"
+            />
+          </div>
+        </section>
+      )}
+
+      <h2 className="section-heading">
         Recent Check Runs
       </h2>
 

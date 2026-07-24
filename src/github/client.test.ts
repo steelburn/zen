@@ -4,11 +4,7 @@ import { githubRequest, GitHubClientError } from "./client.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function mockFetch(response: {
-  status: number;
-  body: string;
-  headers?: Record<string, string>;
-}) {
+function mockFetch(response: { status: number; body: string; headers?: Record<string, string> }) {
   return vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return {
       ok: response.status >= 200 && response.status < 300,
@@ -44,9 +40,7 @@ describe("githubRequest", () => {
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.github.com/repos/owner/repo/check-runs/1");
     expect(options.method ?? "GET").toBe("GET");
-    expect((options.headers as Record<string, string>).Authorization).toBe(
-      "Bearer test-token",
-    );
+    expect((options.headers as Record<string, string>)["Authorization"]).toBe("Bearer test-token");
   });
 
   it("should make a POST request with JSON body", async () => {
@@ -56,10 +50,11 @@ describe("githubRequest", () => {
     });
 
     const body = { name: "zen/quality", head_sha: "abc123" };
-    const result = await githubRequest<{ id: number }>(
-      "/repos/owner/repo/check-runs",
-      { method: "POST", body, token: "test-token" },
-    );
+    const result = await githubRequest<{ id: number }>("/repos/owner/repo/check-runs", {
+      method: "POST",
+      body,
+      token: "test-token",
+    });
 
     expect(result).toEqual({ id: 1 });
 
@@ -74,10 +69,7 @@ describe("githubRequest", () => {
       body: JSON.stringify({ url: "https://example.com/callback" }),
     });
 
-    await githubRequest<{ url: string }>(
-      "https://example.com/callback",
-      { token: "test-token" },
-    );
+    await githubRequest<{ url: string }>("https://example.com/callback", { token: "test-token" });
 
     const [url] = fetchMock.mock.calls[0] as [string];
     expect(url).toBe("https://example.com/callback");
@@ -112,9 +104,7 @@ describe("githubRequest", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(GitHubClientError);
       expect((error as GitHubClientError).status).toBe(422);
-      expect((error as GitHubClientError).message).toContain(
-        "Validation failed",
-      );
+      expect((error as GitHubClientError).message).toContain("Validation failed");
     }
   });
 

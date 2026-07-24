@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
 import { mkdtempSync, writeFileSync, realpathSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
 
 import { loadConfig, loadConfigFromString, matchBranchPattern, ZenConfigError } from "./loader.js";
 
@@ -19,7 +20,9 @@ describe("matchBranchPattern", () => {
 
   it("should match double-star patterns", () => {
     expect(matchBranchPattern("dependabot/**", "dependabot/npm-and-yarn")).toBe(true);
-    expect(matchBranchPattern("dependabot/**", "dependabot/npm-and-yarn/lodash-4.17.21")).toBe(true);
+    expect(matchBranchPattern("dependabot/**", "dependabot/npm-and-yarn/lodash-4.17.21")).toBe(
+      true,
+    );
     expect(matchBranchPattern("dependabot/**", "main")).toBe(false);
   });
 

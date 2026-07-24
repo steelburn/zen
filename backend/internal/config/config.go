@@ -27,6 +27,9 @@ type Config struct {
 
 	// Server configuration.
 	Server ServerConfig
+
+	// Sentry configuration for error tracking.
+	Sentry SentryConfig
 }
 
 // DatabaseConfig holds Postgres connection settings.
@@ -63,6 +66,18 @@ type GitHubAppConfig struct {
 	WebhookSecret string
 }
 
+// SentryConfig holds configuration for Sentry error tracking.
+type SentryConfig struct {
+	// DSN is the Sentry project DSN. If empty, Sentry is not initialized.
+	DSN string
+
+	// Environment is the deployment environment (development, staging, production).
+	Environment string
+
+	// SampleRate controls the rate of transaction sampling (0.0 - 1.0).
+	SampleRate float64
+}
+
 // ServerConfig holds general server settings.
 type ServerConfig struct {
 	// ReadTimeout is the maximum duration for reading the entire request.
@@ -93,6 +108,11 @@ func Load() (*Config, error) {
 			PrivateKey:      envStr("GITHUB_APP_PRIVATE_KEY", ""),
 			PrivateKeyPath:  envStr("GITHUB_APP_PRIVATE_KEY_PATH", ""),
 			WebhookSecret:   envStr("GITHUB_WEBHOOK_SECRET", ""),
+		},
+		Sentry: SentryConfig{
+			DSN:         envStr("SENTRY_DSN", ""),
+			Environment: envStr("SENTRY_ENVIRONMENT", "development"),
+			SampleRate:  envFloat("SENTRY_SAMPLE_RATE", 1.0),
 		},
 		Server: ServerConfig{
 			ReadTimeout:     envDuration("SERVER_READ_TIMEOUT", 10*time.Second),
@@ -160,6 +180,16 @@ func envDuration(key string, defaultVal time.Duration) time.Duration {
 	if val := os.Getenv(key); val != "" {
 		if d, err := time.ParseDuration(val); err == nil {
 			return d
+		}
+	}
+	return defaultVal
+}
+
+// envFloat returns the float64 value of the environment variable or the default.
+func envFloat(key string, defaultVal float64) float64 {
+	if val := os.Getenv(key); val != "" {
+		if f, err := strconv.ParseFloat(val, 64); err == nil {
+			return f
 		}
 	}
 	return defaultVal

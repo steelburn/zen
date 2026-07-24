@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,7 +8,6 @@ import {
   WebhookError,
   WebhookSignatureError,
 } from "./webhook.js";
-
 import type { PullRequestWebhookPayload } from "./webhook.js";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -75,16 +76,12 @@ describe("parsePullRequestEvent", () => {
 
   it("should throw if pull_request is missing", () => {
     const { pull_request: _, ...rest } = openedPayload;
-    expect(() => parsePullRequestEvent(rest as PullRequestWebhookPayload)).toThrow(
-      WebhookError,
-    );
+    expect(() => parsePullRequestEvent(rest as PullRequestWebhookPayload)).toThrow(WebhookError);
   });
 
   it("should throw if repository is missing", () => {
     const { repository: _, ...rest } = openedPayload;
-    expect(() => parsePullRequestEvent(rest as PullRequestWebhookPayload)).toThrow(
-      WebhookError,
-    );
+    expect(() => parsePullRequestEvent(rest as PullRequestWebhookPayload)).toThrow(WebhookError);
   });
 
   it("should handle missing installation gracefully", () => {
@@ -102,30 +99,23 @@ describe("verifyWebhookSignature", () => {
     const body = '{"action":"opened"}';
 
     // Compute the expected signature manually
-    const { createHmac } = require("node:crypto");
-    const expected = createHmac("sha256", secret)
-      .update(body)
-      .digest("hex");
+    const expected = createHmac("sha256", secret).update(body).digest("hex");
 
-    const result = verifyWebhookSignature(
-      body,
-      `sha256=${expected}`,
-      secret,
-    );
+    const result = verifyWebhookSignature(body, `sha256=${expected}`, secret);
 
     expect(result).toBe(true);
   });
 
   it("should throw if signature header is missing", () => {
-    expect(() =>
-      verifyWebhookSignature("body", undefined, "secret"),
-    ).toThrow(WebhookSignatureError);
+    expect(() => verifyWebhookSignature("body", undefined, "secret")).toThrow(
+      WebhookSignatureError,
+    );
   });
 
   it("should throw if signature has wrong format", () => {
-    expect(() =>
-      verifyWebhookSignature("body", "invalid-format", "secret"),
-    ).toThrow(WebhookSignatureError);
+    expect(() => verifyWebhookSignature("body", "invalid-format", "secret")).toThrow(
+      WebhookSignatureError,
+    );
   });
 
   it("should throw if signature does not match", () => {

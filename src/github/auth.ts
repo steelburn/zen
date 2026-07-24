@@ -8,6 +8,7 @@
  */
 
 import { createPrivateKey, sign } from "node:crypto";
+
 import type { GitHubAppConfig, InstallationToken } from "./types.js";
 
 // ─── Errors ──────────────────────────────────────────────────────────────────
@@ -120,8 +121,7 @@ export async function getAuthenticatedToken(
 // ─── Encoding helpers ────────────────────────────────────────────────────────
 
 function base64UrlEncode(data: string): string {
-  return Buffer.from(data, "utf-8")
-    .toString("base64url");
+  return Buffer.from(data, "utf-8").toString("base64url");
 }
 
 function base64UrlEncodeBuffer(data: Buffer): string {

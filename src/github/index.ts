@@ -33,6 +33,8 @@ export {
   CommentError,
 } from "./comments.js";
 
+export type { CheckSummary, QualityReportData } from "./comments.js";
+
 export type {
   GitHubAppConfig,
   InstallationToken,
@@ -50,6 +52,4 @@ export type {
   CreateCommentParams,
   UpdateCommentParams,
   PullRequestEvent,
-  CheckSummary,
-  QualityReportData,
 } from "./types.js";

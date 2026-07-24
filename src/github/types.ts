@@ -31,12 +31,7 @@ export type CheckRunStatus = "queued" | "in_progress" | "completed";
 
 /** Conclusion of a completed check run. */
 export type CheckRunConclusion =
-  | "success"
-  | "failure"
-  | "neutral"
-  | "cancelled"
-  | "timed_out"
-  | "action_required";
+  "success" | "failure" | "neutral" | "cancelled" | "timed_out" | "action_required";
 
 /** Annotation level in a check run output. */
 export type AnnotationLevel = "notice" | "warning" | "failure";

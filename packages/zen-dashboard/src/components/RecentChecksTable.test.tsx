@@ -1,7 +1,16 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { CheckRun } from "../types.ts";
 import { RecentChecksTable } from "./RecentChecksTable.tsx";
+
+// Mock router navigation
+vi.mock("../router.tsx", () => ({
+  navigate: vi.fn(),
+  navigateToCheck: vi.fn(),
+  navigateToRepo: vi.fn(),
+  Link: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) =>
+    vi.fn(() => <a href={href} className={className}>{children}</a>)(),
+}));
 
 const MOCK_CHECKS: CheckRun[] = [
   {
@@ -60,5 +69,14 @@ describe("RecentChecksTable", () => {
   it("shows empty state when no checks", () => {
     render(<RecentChecksTable checks={[]} />);
     expect(screen.getByText("No check runs found.")).toBeInTheDocument();
+  });
+
+  it("renders repo names as clickable links", () => {
+    render(<RecentChecksTable checks={MOCK_CHECKS} />);
+    const zenLink = screen.getByText("zen");
+    expect(zenLink.closest("a")).toBeInTheDocument();
+
+    const apiLink = screen.getByText("api-gateway");
+    expect(apiLink.closest("a")).toBeInTheDocument();
   });
 });

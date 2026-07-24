@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"expvar"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"github.com/zen-inc/zen-server/internal/db"
 	"github.com/zen-inc/zen-server/internal/github"
 	"github.com/zen-inc/zen-server/internal/handler"
+	"github.com/zen-inc/zen-server/internal/monitoring"
 )
 
 // version is set at build time via -ldflags.
@@ -39,6 +41,18 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Initialise Sentry error tracking.
+	if err := monitoring.InitSentry(monitoring.SentryConfig{
+		DSN:         cfg.Sentry.DSN,
+		Environment: cfg.Sentry.Environment,
+		SampleRate:  cfg.Sentry.SampleRate,
+		Version:     version,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to initialise Sentry", "error", err)
+		os.Exit(1)
+	}
+	defer monitoring.FlushSentry(cfg.Server.ShutdownTimeout)
 
 	slog.InfoContext(ctx, "starting ZEN server",
 		"version", version,
@@ -82,8 +96,14 @@ func main() {
 	// Set up HTTP router.
 	mux := http.NewServeMux()
 
-	// Health check.
-	mux.HandleFunc("GET /healthz", handler.NewHealthHandler(version))
+	// Health check (with DB connectivity).
+	mux.HandleFunc("GET /healthz", handler.NewHealthHandler(version, database))
+
+	// Metrics endpoint (JSON).
+	mux.HandleFunc("GET /metrics", monitoring.MetricsHandler())
+
+	// Expvar debug vars (go memstats, goroutines, etc).
+	mux.Handle("GET /debug/vars", expvar.Handler())
 
 	// GitHub webhook receiver.
 	webhookHandler := handler.NewWebhookHandler(cfg.GitHub.WebhookSecret)
@@ -145,10 +165,18 @@ func parseLogLevel(level string) slog.Level {
 	}
 }
 
-// withMiddleware wraps the handler with common middleware.
+// withMiddleware wraps the handler with common middleware including metrics
+// collection, structured logging, panic recovery, and Sentry error reporting.
 func withMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+
+		// Track active requests.
+		monitoring.GlobalMetrics.ObserveRequestStart()
+		defer monitoring.GlobalMetrics.ObserveRequestDone()
+
+		// Wrap response writer to capture status code.
+		lrw := newLoggingResponseWriter(w)
 
 		// Log request.
 		slog.InfoContext(r.Context(), "request",
@@ -158,16 +186,51 @@ func withMiddleware(next http.Handler) http.Handler {
 		)
 
 		// Set common headers.
-		w.Header().Set("X-ZEN-Version", version)
+		lrw.Header().Set("X-ZEN-Version", version)
 
-		next.ServeHTTP(w, r)
+		// Panic recovery with Sentry reporting.
+		defer func() {
+			if rec := recover(); rec != nil {
+				monitoring.GlobalMetrics.ObserveError()
+				slog.ErrorContext(r.Context(), "panic recovered",
+					"panic", rec,
+					"method", r.Method,
+					"path", r.URL.Path,
+				)
+				// Report to Sentry if initialised.
+				monitoring.RecoverAndReport(rec, r)
+				http.Error(lrw, "Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
 
-		// Log response time.
-		slog.DebugContext(r.Context(), "request completed",
+		next.ServeHTTP(lrw, r)
+
+		// Record metrics.
+		duration := time.Since(start)
+		monitoring.GlobalMetrics.ObserveRequest(lrw.statusCode, duration)
+
+		// Log response time (always at info level for now).
+		slog.InfoContext(r.Context(), "request completed",
 			"method", r.Method,
 			"path", r.URL.Path,
-			"duration", time.Since(start).String(),
+			"status", lrw.statusCode,
+			"duration", duration.String(),
 		)
 	})
+}
+
+// loggingResponseWriter wraps http.ResponseWriter to capture the status code.
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func newLoggingResponseWriter(w http.ResponseWriter) *loggingResponseWriter {
+	return &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) {
+	lrw.statusCode = code
+	lrw.ResponseWriter.WriteHeader(code)
 }
 

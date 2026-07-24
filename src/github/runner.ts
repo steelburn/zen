@@ -12,8 +12,9 @@
  * @module
  */
 
-import type { CheckResult, CheckStatus } from "../checks/types.js";
-import { reportCheckRun, buildCheckOutput } from "./checks.js";
+import type { CheckResult } from "../checks/types.js";
+
+import { createCheckRun, updateCheckRun, buildCheckOutput } from "./checks.js";
 import { upsertZenComment, formatQualityReport } from "./comments.js";
 import type {
   AnnotationLevel,
@@ -54,7 +55,7 @@ export async function runAndReport(
   const { checkRunName, event, token } = options;
 
   // 1. Create the check run in "in_progress" state
-  const checkRun = await reportCheckRun(
+  const checkRun = await createCheckRun(
     {
       owner: event.owner,
       repo: event.repo,
@@ -82,8 +83,10 @@ export async function runAndReport(
   }
 
   // 4. Build check output
-  const { conclusion, annotations, summary, detailText } =
-    buildAggregateOutput(successfulResults, errors);
+  const { conclusion, annotations, summary, detailText } = buildAggregateOutput(
+    successfulResults,
+    errors,
+  );
 
   // 5. Update the check run with results
   const output = buildCheckOutput(
@@ -93,12 +96,11 @@ export async function runAndReport(
     detailText,
   );
 
-  await reportCheckRun(
+  await updateCheckRun(
     {
       owner: event.owner,
       repo: event.repo,
-      name: checkRunName,
-      headSha: event.headSha,
+      checkRunId: checkRun.id,
       status: "completed",
       conclusion,
       completedAt: new Date().toISOString(),
@@ -177,9 +179,10 @@ function buildAggregateOutput(
     hasError = true;
   }
 
-  const conclusion: CheckRunConclusion =
-    hasError ? "action_required"
-      : hasFailure ? "failure"
+  const conclusion: CheckRunConclusion = hasError
+    ? "action_required"
+    : hasFailure
+      ? "failure"
       : "success";
 
   const summary = buildSummaryLine(results, errors);
@@ -192,10 +195,7 @@ function buildAggregateOutput(
   };
 }
 
-function buildSummaryLine(
-  results: readonly CheckResult[],
-  errors: readonly string[],
-): string {
+function buildSummaryLine(results: readonly CheckResult[], errors: readonly string[]): string {
   const passed = results.filter((r) => r.status === "pass").length;
   const failed = results.filter((r) => r.status === "fail").length;
   const checkErrors = results.filter((r) => r.status === "error").length;
@@ -206,9 +206,7 @@ function buildSummaryLine(
   if (failed > 0) parts.push(`${failed} failed`);
   if (totalErrors > 0) parts.push(`${totalErrors} error(s)`);
 
-  return parts.length > 0
-    ? `Checks: ${parts.join(", ")}.`
-    : "No checks were run.";
+  return parts.length > 0 ? `Checks: ${parts.join(", ")}.` : "No checks were run.";
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -256,12 +254,12 @@ function aggregateOverallStatus(
 function aggregateCheckSummaries(
   results: readonly CheckResult[],
   errors: readonly string[],
-): Array<{ name: string; status: "passed" | "failed" | "skipped"; details: string }> {
-  const summaries: Array<{
+): { name: string; status: "passed" | "failed" | "skipped"; details: string }[] {
+  const summaries: {
     name: string;
     status: "passed" | "failed" | "skipped";
     details: string;
-  }> = [];
+  }[] = [];
 
   for (const result of results) {
     summaries.push({

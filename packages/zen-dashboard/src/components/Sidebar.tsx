@@ -1,29 +1,47 @@
 import type { ReactNode } from "react";
+import { Link, useRoute } from "../router.tsx";
 
 /**
  * Sidebar navigation for the ZEN dashboard.
  */
 export function Sidebar(): ReactNode {
+  const route = useRoute();
+
   return (
     <aside className="sidebar">
-      <div className="sidebar__logo">
+      <Link href="" className="sidebar__logo">
         <div className="sidebar__logo-icon">Z</div>
         <span>ZEN</span>
-      </div>
+      </Link>
 
       <nav className="sidebar__nav">
-        <a className="sidebar__link sidebar__link--active" href="/">
+        <Link
+          href=""
+          className="sidebar__link"
+          activeClassName="sidebar__link--active"
+          current={route.kind === "dashboard"}
+        >
           <span>📊</span>
           <span>Dashboard</span>
-        </a>
-        <a className="sidebar__link" href="/repos">
+        </Link>
+        <Link
+          href="/repos"
+          className="sidebar__link"
+          activeClassName="sidebar__link--active"
+          current={route.kind === "repos" || route.kind === "repo-checks"}
+        >
           <span>📦</span>
           <span>Repositories</span>
-        </a>
-        <a className="sidebar__link" href="/checks">
+        </Link>
+        <Link
+          href="/checks"
+          className="sidebar__link"
+          activeClassName="sidebar__link--active"
+          current={route.kind === "checks"}
+        >
           <span>✅</span>
           <span>Check Runs</span>
-        </a>
+        </Link>
       </nav>
 
       <div className="sidebar__version">v0.1.0</div>

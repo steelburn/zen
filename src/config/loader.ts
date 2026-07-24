@@ -6,8 +6,15 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+
 import { load as parseYaml, YAMLException } from "js-yaml";
 
+import {
+  DEFAULT_COMPLEXITY_CHECK,
+  DEFAULT_CONFIG,
+  DEFAULT_COVERAGE_CHECK,
+  DEFAULT_LINT_CHECK,
+} from "./defaults.js";
 import type {
   BranchOverride,
   ChecksConfig,
@@ -17,22 +24,13 @@ import type {
   LintCheck,
   ResolvedZenConfig,
 } from "./types.js";
-import {
-  DEFAULT_CHECKS,
-  DEFAULT_COMPLEXITY_CHECK,
-  DEFAULT_CONFIG,
-  DEFAULT_COVERAGE_CHECK,
-  DEFAULT_LINT_CHECK,
-} from "./defaults.js";
 import { validateConfig } from "./validation.js";
 
 // ---------------------------------------------------------------------------
 // Deep-merge helpers (user partial → defaults, safely)
 // ---------------------------------------------------------------------------
 
-function mergeCoverageCheck(
-  user: CoverageCheck | undefined,
-): Required<CoverageCheck> {
+function mergeCoverageCheck(user: CoverageCheck | undefined): Required<CoverageCheck> {
   return {
     ...DEFAULT_COVERAGE_CHECK,
     ...user,
@@ -46,9 +44,7 @@ function mergeLintCheck(user: LintCheck | undefined): Required<LintCheck> {
   };
 }
 
-function mergeComplexityCheck(
-  user: ComplexityCheck | undefined,
-): Required<ComplexityCheck> {
+function mergeComplexityCheck(user: ComplexityCheck | undefined): Required<ComplexityCheck> {
   return {
     ...DEFAULT_COMPLEXITY_CHECK,
     ...user,
@@ -228,10 +224,7 @@ export interface LoadConfigResult {
  * @param options - Loading options (branch, environment).
  * @returns A resolved config result.
  */
-export function loadConfig(
-  directory?: string,
-  options?: LoadConfigOptions,
-): LoadConfigResult {
+export function loadConfig(directory?: string, options?: LoadConfigOptions): LoadConfigResult {
   const dir = directory ?? process.cwd();
   const configPath = join(dir, ".zen.yml");
 
