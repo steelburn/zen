@@ -16,7 +16,6 @@ import type {
   EnvironmentOverride,
   LintCheck,
   ResolvedZenConfig,
-  ZenConfig,
 } from "./types.js";
 import {
   DEFAULT_CHECKS,
@@ -56,7 +55,16 @@ function mergeComplexityCheck(
   };
 }
 
-function mergeChecksConfig(user: ChecksConfig | undefined): Required<ChecksConfig> {
+/**
+ * Internal full checks type matching what ResolvedZenConfig expects.
+ */
+type ResolvedChecks = Required<ChecksConfig> & {
+  readonly coverage: Required<CoverageCheck>;
+  readonly lint: Required<LintCheck>;
+  readonly complexity: Required<ComplexityCheck>;
+};
+
+function mergeChecksConfig(user: ChecksConfig | undefined): ResolvedChecks {
   return {
     coverage: mergeCoverageCheck(user?.coverage),
     lint: mergeLintCheck(user?.lint),
@@ -148,21 +156,21 @@ function applyNestedOverride(
   config: ResolvedZenConfig,
   override: BranchOverride | EnvironmentOverride,
 ): ResolvedZenConfig {
-  const mergedChecks = override.config.checks
-    ? mergeChecksConfig({
+  const mergedChecks: ResolvedChecks = override.config.checks
+    ? {
         coverage: {
           ...config.checks.coverage,
           ...override.config.checks.coverage,
-        } as CoverageCheck,
+        } as Required<CoverageCheck>,
         lint: {
           ...config.checks.lint,
           ...override.config.checks.lint,
-        } as LintCheck,
+        } as Required<LintCheck>,
         complexity: {
           ...config.checks.complexity,
           ...override.config.checks.complexity,
-        } as ComplexityCheck,
-      })
+        } as Required<ComplexityCheck>,
+      }
     : config.checks;
 
   const mergedExclude =

@@ -270,7 +270,10 @@ function validateBranchOverride(value: unknown): ValidationResult<BranchOverride
     errors.push(...configResult.errors);
   }
 
-  if (errors.length > 0) return fail(...errors);
+  if (errors.length > 0 || !configResult.ok) {
+    if (!configResult.ok) errors.push(...configResult.errors);
+    return fail(...errors);
+  }
 
   return ok({
     pattern: obj["pattern"] as string,
@@ -301,7 +304,10 @@ function validateEnvironmentOverride(value: unknown): ValidationResult<Environme
     errors.push(...configResult.errors);
   }
 
-  if (errors.length > 0) return fail(...errors);
+  if (errors.length > 0 || !configResult.ok) {
+    if (!configResult.ok) errors.push(...configResult.errors);
+    return fail(...errors);
+  }
 
   return ok({
     name: obj["name"] as string,
@@ -377,11 +383,14 @@ export function validateConfig(input: unknown): ValidationResult<ZenConfig> {
 
   if (errors.length > 0) return fail(...errors);
 
-  const result: ZenConfig = {};
-  if (obj["version"] !== undefined) (result as Record<string, unknown>)["version"] = version.value;
-  if (obj["checks"] !== undefined) (result as Record<string, unknown>)["checks"] = checks.value;
-  if (obj["branches"] !== undefined) (result as Record<string, unknown>)["branches"] = branches;
-  if (obj["environments"] !== undefined) (result as Record<string, unknown>)["environments"] = environments;
-  if (obj["exclude"] !== undefined) (result as Record<string, unknown>)["exclude"] = exclude.value;
-  return ok(result);
+  // Build result — only include fields that were present in the input.
+  // We use non-null assertions because validation passed (all errors
+  // would have been caught above).
+  const result: Record<string, unknown> = {};
+  if (obj["version"] !== undefined) result["version"] = version.value!;
+  if (obj["checks"] !== undefined) result["checks"] = checks.value!;
+  if (obj["branches"] !== undefined) result["branches"] = branches;
+  if (obj["environments"] !== undefined) result["environments"] = environments;
+  if (obj["exclude"] !== undefined) result["exclude"] = exclude.value!;
+  return ok(result as ZenConfig);
 }

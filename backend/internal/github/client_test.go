@@ -40,7 +40,7 @@ func TestCreateInstallationToken_Success(t *testing.T) {
 			Token:     "inst-token-123",
 			ExpiresAt: time.Now().Add(1 * time.Hour),
 			Permissions: map[string]string{
-				"checks": "write",
+				"checks":        "write",
 				"pull_requests": "read",
 			},
 		})
@@ -81,6 +81,49 @@ func TestCreateInstallationToken_Unauthorized(t *testing.T) {
 	}
 
 	_, err := c.CreateInstallationToken(context.Background(), "bad-jwt", 12345)
+	if err == nil {
+		t.Fatal("CreateInstallationToken() expected error")
+	}
+
+	// Verify it's an ErrorResponse.
+	if _, ok := err.(*ErrorResponse); !ok {
+		t.Errorf("expected *ErrorResponse, got %T", err)
+	}
+}
+
+func TestCreateInstallationToken_NotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Not found",
+		})
+	}))
+	defer srv.Close()
+
+	c := &Client{
+		httpClient: &http.Client{Timeout: 10 * time.Second},
+		baseURL:    srv.URL,
+	}
+
+	_, err := c.CreateInstallationToken(context.Background(), "test-jwt", 99999)
+	if err == nil {
+		t.Fatal("CreateInstallationToken() expected error")
+	}
+}
+
+func TestCreateInstallationToken_NonJSONError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`Internal Server Error`))
+	}))
+	defer srv.Close()
+
+	c := &Client{
+		httpClient: &http.Client{Timeout: 10 * time.Second},
+		baseURL:    srv.URL,
+	}
+
+	_, err := c.CreateInstallationToken(context.Background(), "test-jwt", 123)
 	if err == nil {
 		t.Fatal("CreateInstallationToken() expected error")
 	}
@@ -132,4 +175,53 @@ func TestDoRequest_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("DoRequest() expected error")
 	}
+}
+
+func TestDoRequest_WithBody(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Content-Type") != "application/json" {
+			t.Errorf("Content-Type = %q, want application/json", r.Header.Get("Content-Type"))
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok": true}`))
+	}))
+	defer srv.Close()
+
+	c := &Client{
+		httpClient: &http.Client{Timeout: 10 * time.Second},
+		baseURL:    srv.URL,
+	}
+
+	reqBody := map[string]string{"key": "value"}
+	_, err := c.DoRequest(context.Background(), http.MethodPost, "/some/path", "inst-token", reqBody)
+	if err != nil {
+		t.Fatalf("DoRequest() error = %v", err)
+	}
+}
+
+func TestErrorResponse_Error(t *testing.T) {
+	err := &ErrorResponse{
+		Message: "Not Found",
+		Status:  "404 Not Found",
+	}
+	msg := err.Error()
+	expected := "github api error: Not Found (status: 404 Not Found)"
+	if msg != expected {
+		t.Errorf("Error() = %q, want %q", msg, expected)
+	}
+}
+
+func TestTokenProviderInterface(t *testing.T) {
+	// Compile-time check that TokenProvider interface is well-defined.
+	var _ TokenProvider = (*mockTokenProvider)(nil)
+}
+
+// mockTokenProvider implements TokenProvider for testing.
+type mockTokenProvider struct {
+	token string
+	err   error
+}
+
+func (m *mockTokenProvider) GenerateToken(ttl time.Duration) (string, error) {
+	return m.token, m.err
 }
