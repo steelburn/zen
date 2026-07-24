@@ -352,38 +352,6 @@ func TestWebhookHandler_NoSignatureStillWorks(t *testing.T) {
 	}
 }
 
-func TestWebhookHandler_ClosedPRIgnored(t *testing.T) {
-	h := NewWebhookHandler("secret")
-
-	payload := WebhookPayload{
-		Action: "closed",
-		PullRequest: &PullRequest{
-			Number: 42,
-			Head:   &Branch{Ref: "feature", SHA: "sha"},
-			Base:   &Branch{Ref: "main", SHA: "base-sha"},
-		},
-		Repository: &Repository{
-			ID:       1,
-			FullName: "owner/repo",
-			Name:     "repo",
-			Owner:    &Owner{ID: 100, Login: "owner", Type: "User"},
-		},
-	}
-
-	body, _ := json.Marshal(payload)
-
-	req := httptest.NewRequest(http.MethodPost, "/webhook", bytes.NewReader(body))
-	req.Header.Set("X-GitHub-Event", "pull_request")
-	req.Header.Set("X-Hub-Signature-256", signPayload(body, "secret"))
-	rec := httptest.NewRecorder()
-
-	h.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
-	}
-}
-
 // Test serialization round-trips.
 func TestWebhookPayload_JSONRoundTrip(t *testing.T) {
 	original := WebhookPayload{

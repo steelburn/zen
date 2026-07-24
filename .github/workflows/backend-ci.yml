@@ -1,0 +1,67 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: backend/go.sum
+
+      - name: Check formatting
+        run: |
+          gofmt -l . > /tmp/gofmt-errors.txt
+          if [ -s /tmp/gofmt-errors.txt ]; then
+            echo "Unformatted files:"
+            cat /tmp/gofmt-errors.txt
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Unit tests
+        run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Check coverage threshold (80%)
+        run: |
+          go tool cover -func=coverage.out | grep -E "^total:" | awk '{print $NF}' | sed 's/%//' | while read -r pct; do
+            if (( $(echo "$pct < 80" | bc -l) )); then
+              echo "Coverage $pct% is below threshold 80%"
+              exit 1
+            fi
+            echo "Coverage $pct% meets threshold 80%"
+          done
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage.out

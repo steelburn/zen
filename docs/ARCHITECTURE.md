@@ -3,7 +3,10 @@
 ## Overview
 
 ZEN's mission is to increase developed application quality, reduce software
-defects and bugs, and ship faster. This repository contains the core platform.
+defects and bugs, and ship faster. This repository contains the ZEN platform.
+
+ZEN is a **PR Quality Gate** — a GitHub App that automatically checks pull
+requests for code quality regressions before they merge.
 
 ## Principles
 
@@ -18,30 +21,89 @@ defects and bugs, and ship faster. This repository contains the core platform.
 
 ## Technology Stack
 
-| Layer        | Choice          | Rationale                               |
-| ------------ | --------------- | --------------------------------------- |
-| Language     | TypeScript      | Type safety, broad ecosystem            |
-| Runtime      | Node.js 22      | LTS, modern JS features                 |
-| Testing      | Vitest          | Fast, native TS, coverage built-in      |
-| Linting      | ESLint + Prettier | Consistent code style                 |
-| CI/CD        | GitHub Actions  | Tight GitHub integration                |
-| Commit style | Conventional Commits | Auto-changelog, semantic releases |
+| Layer        | Choice                  | Rationale                                  |
+| ------------ | ----------------------- | ------------------------------------------ |
+| Backend      | **Go 1.22**             | Single binary, fast startup, great HTTP    |
+| Database     | **Postgres 16**         | Reliable, well-understood, scalable        |
+| Frontend     | **React + Vite** (TS)   | Lightweight dashboard, good DX             |
+| Runtime      | **Docker** containers   | Simple deploy, consistent environments     |
+| GitHub       | **GitHub App** + Checks API | Native PR check experience             |
+| CI           | **GitHub Actions** (2 workflows) | Frontend + Backend, parallel      |
+| Monitoring   | **Sentry** + **Grafana Cloud** | Error tracking + metrics (planned)  |
 
 ## Repository Structure
 
 ```
 zen/
-├── src/               # Application source code
-├── docs/              # Documentation and runbooks
-│   ├── adr/           # Architecture Decision Records
-│   ├── runbooks/      # Operational runbooks
+├── backend/                      # Go backend service
+│   ├── cmd/
+│   │   └── zen-server/           # Main binary entry point
+│   ├── internal/
+│   │   ├── config/               # Environment-based configuration
+│   │   ├── db/                   # Database connection + migrations
+│   │   ├── auth/                 # GitHub App JWT authentication
+│   │   ├── github/               # GitHub API client
+│   │   └── handler/              # HTTP handlers (health, webhook)
+│   ├── migrations/               # SQL migration files
+│   ├── Dockerfile                # Multi-stage scratch build
+│   └── go.mod
+├── src/                          # Frontend dashboard (TypeScript)
+├── docs/                         # Documentation and runbooks
+│   ├── adr/                      # Architecture Decision Records
 │   └── ARCHITECTURE.md
-├── scripts/           # Build and maintenance scripts
-├── .github/workflows/ # CI/CD pipeline definitions
-├── package.json
-├── tsconfig.json
-└── vitest.config.ts
+├── scripts/                      # Build and maintenance scripts
+├── .github/workflows/            # CI/CD pipeline definitions
+│   ├── ci.yml                    # Frontend CI
+│   ├── backend-ci.yml            # Backend CI
+│   └── release.yml               # Release pipeline
+├── package.json                  # Frontend dependencies
+└── tsconfig.json                 # Frontend TypeScript config
 ```
+
+## Architecture Diagram
+
+```
+┌─────────────┐     ┌───────────────┐     ┌──────────────────┐
+│   GitHub     │────▶│  ZEN Service  │────▶│  Check Runner    │
+│   App        │     │  (Go binary)  │     │  (Isolated)      │
+│   Webhooks   │     │               │     │                  │
+└─────────────┘     │  - Auth       │     │  - Clone repo    │
+                    │  - Config     │     │  - Run coverage  │
+                    │  - Webhook    │     │  - Run linter    │
+                    │  - Check API  │     │  - Run analysis  │
+                    │  - DB         │     │  - Report        │
+                    └───────────────┘     └──────────────────┘
+                            │
+                    ┌───────┴───────┐
+                    │   Postgres    │
+                    │               │
+                    │ - repos       │
+                    │ - checks      │
+                    │ - configs     │
+                    │ - installations│
+                    └───────────────┘
+```
+
+## Key Design Decisions
+
+- **Single binary Go service** — fast startup, easy deploy, no runtime dependency
+- **Postgres** for persistence — standard, well-understood, scalable later
+- **Isolated check runners** — each PR check runs in a short-lived container
+- **GitHub App** authentication — install-per-repo, no user tokens needed
+- **Configuration file in repo** — `.zen.yml` checked into version control
+
+## API Endpoints
+
+| Method | Path              | Description                          |
+| ------ | ----------------- | ------------------------------------ |
+| GET    | `/healthz`        | Health check (returns status + ver)  |
+| POST   | `/webhook`        | GitHub webhook receiver              |
+| GET    | `/`               | Root — service info                  |
+
+## Coverage Targets
+
+- **Backend (Go):** >80% statement coverage on all internal packages
+- **Frontend (TS):** >80% line coverage (via Vitest)
 
 ## Branching Strategy
 
@@ -56,10 +118,6 @@ We follow **trunk-based development**:
 
 Every pull request to `main` must pass:
 
-1. TypeScript type checking (`tsc --noEmit`)
-2. ESLint with zero errors
-3. Prettier formatting check
-4. All unit tests passing (80% coverage minimum)
-5. Build succeeds
-
-See [ci.yml](../.github/workflows/ci.yml) for the full pipeline definition.
+1. **Frontend:** TypeScript type check, ESLint, Prettier, all tests
+2. **Backend:** `go vet`, `gofmt`, all tests with >80% coverage
+3. Build succeeds for both frontend and backend
