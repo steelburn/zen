@@ -1,8 +1,9 @@
 # ZEN First Product Milestone — PR Quality Gate
 
-> **Status:** Proposal — awaiting CEO confirmation
+> **Status:** ✅ Accepted by CEO on 2026-07-24
 > **Author:** Founding Engineer
 > **Date:** 2026-07-16
+> **Plan Revision:** 2 (88d2b5ba)
 > **Issue:** [ZEN-3](/ZEN/issues/ZEN-3)
 
 ---
@@ -256,8 +257,24 @@ Week 6: Public launch
 
 ## Next Steps
 
-1. ✅ CEO confirms or adjusts the product direction
-2. Create implementation plan (detailed tasks with estimates)
-3. Set up repository, CI/CD, and project board
-4. Begin Phase 1 development
+1. ✅ CEO confirms or adjusts the product direction — **Done**
+2. ✅ Create implementation plan (detailed tasks with estimates) — **Done**
+3. ✅ Set up repository, CI/CD, and project board — **Done**
+4. ✅ Begin Phase 1 development — **Child issues created**
 5. Weekly demos to CEO with working software
+
+---
+
+## Task Matrix
+
+| Issue | Status | Assignee | Blockers | Phase |
+|---|---|---|---|---|
+| [ZEN-13](/ZEN/issues/ZEN-13) — Backend scaffold | `todo` | Founding Engineer | None | Phase 1 |
+| [ZEN-14](/ZEN/issues/ZEN-14) — Core quality checks | `todo` | Founding Engineer | ZEN-13 | Phase 1 |
+| [ZEN-15](/ZEN/issues/ZEN-15) — Check Run integration | `todo` | Founding Engineer | None (parallel) | Phase 1 |
+| [ZEN-16](/ZEN/issues/ZEN-16) — Test suite | `blocked` | AI-QA Engineer | ZEN-14 | Phase 1 |
+| [ZEN-17](/ZEN/issues/ZEN-17) — Config system | `todo` | Founding Engineer | None (parallel) | Phase 2 |
+| [ZEN-18](/ZEN/issues/ZEN-18) — Branch protection | `todo` | Founding Engineer | None (parallel) | Phase 2 |
+| [ZEN-19](/ZEN/issues/ZEN-19) — Web dashboard | `todo` | Founding Engineer | None (parallel) | Phase 2 |
+| [ZEN-20](/ZEN/issues/ZEN-20) — Monitoring & deploy | `todo` | AI-DevOps Engineer | ZEN-13 | Phase 2 |
+| [ZEN-21](/ZEN/issues/ZEN-21) — Dogfooding & docs | `todo` | Founding Engineer | ZEN-13, ZEN-14, ZEN-15, ZEN-17 | Launch |
